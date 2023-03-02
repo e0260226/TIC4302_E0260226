@@ -6,15 +6,24 @@ on:
     branches: [main]
 
 jobs:
-  
-  sca:
+  secret-scan:
+  #sca:
     runs-on: ubuntu-latest
 
     steps:
-  #    - uses: actions/checkout@v2
-  #secret scanner
-       - uses: secret-scanner/action@0.0.2
-      
+       - uses: actions/checkout@v2
+  
+       - run: |
+          mkdir -p logs/
+          echo 'Environment/App/db' > logs/exclude.txt
+
+
+        - uses: max/secret-scan@master
+          with:
+          exclude_path: 'logs/exclude.txt'
+    
+build:
+ runs-on: ubuntu-latest      
       - run: |
           mkdir -p logs/
 
