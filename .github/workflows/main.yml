@@ -1,13 +1,10 @@
 name: CI
-
 on:
   push:
     branches: [main]
-
 jobs: 
   secret-scan:
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v2  
       
@@ -19,10 +16,8 @@ jobs:
       - uses: max/secret-scan@master
         with:
           exclude_path: 'logs/exclude.txt'
-
   build:
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v2
       
@@ -31,7 +26,6 @@ jobs:
                 
   sca:
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v2   
       
@@ -46,7 +40,6 @@ jobs:
           name: logs
           path: logs/result.txt   
           
-
       - name: Pyraider
         run: |
           pip install pyraider
@@ -59,7 +52,6 @@ jobs:
   sast:
     needs: [build, sca]
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v2 
         
@@ -92,8 +84,34 @@ jobs:
          target: 'http://localhost:5000'
          cmd_options: '-a'     
          
+  deploy:
+    needs: [dast,sast]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+      
+      - name: Login to DockerHub
+        uses: docker/login-action@v1 
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      
+      - name: Build and push
+        id: docker_build
+        uses: docker/build-push-action@v2
+        with:
+          context: ./Environment/App/app/
+          file: ./Environment/App/app/Dockerfile
+          builder: ${{ steps.buildx.outputs.name }}
+          push: true
+          tags: sristisravan/tic4302-demo:latest
   container-scan:
-    needs: [dast, sast]
+    needs: [deploy]
     runs-on: ubuntu-latest
     steps:
      - name: Run Dockle
@@ -109,33 +127,3 @@ jobs:
        with:
          name: Dockle Report
          path: dockle-report.json
-         
-  deploy:
-    needs: [container-scan]
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v2
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v1
-      
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
-      
-      - name: Login to DockerHub
-        uses: docker/login-action@v1 
-        with:
-          username: ${{ secrets.DOCKER_HUB_USER }}
-          password: ${{ secrets.DOCKER_HUB_TOKEN }}
-      
-      - name: Build and push
-        id: docker_build
-        uses: docker/build-push-action@v2
-        with:
-          context: ./Environment/App/app/
-          file: ./Environment/App/app/Dockerfile
-          builder: ${{ steps.buildx.outputs.name }}
-          push: true
-          tags: sristisravan/tic4302-demo:latest
-
