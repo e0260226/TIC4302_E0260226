@@ -76,6 +76,7 @@ jobs:
         with:
           target: http://localhost:5000
           cmd_options: -a
+  
   deploy:
     needs:
       - dast
@@ -101,6 +102,7 @@ jobs:
           builder: ${{ steps.buildx.outputs.name }}
           push: true
           tags: e0260226/tic4302demo:latest
+  
   container-scan:
     needs:
       - deploy
